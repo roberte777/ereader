@@ -1,0 +1,28 @@
+# Default configuration for the e-reader API server
+# Override with config/local.toml or environment variables (EREADER__*)
+
+[server]
+host = "0.0.0.0"
+port = 8080
+request_body_limit = 104857600  # 100MB
+
+[database]
+url = "postgres://ereader:ereader_dev@localhost/ereader"
+max_connections = 10
+min_connections = 2
+
+[storage]
+base_path = "/app/data/files"
+covers_path = "/app/data/covers"
+temp_path = "/app/data/temp"
+
+[clerk]
+publishable_key = ""
+secret_key = ""
+jwks_url = "https://api.clerk.dev/.well-known/jwks.json"
+# webhook_secret = ""
+
+[worker]
+max_concurrent_tasks = 4
+poll_interval_secs = 5
+task_timeout_secs = 300

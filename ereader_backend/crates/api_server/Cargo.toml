@@ -1,0 +1,43 @@
+[package]
+name = "api_server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "api_server"
+path = "src/main.rs"
+
+[dependencies]
+common = { path = "../common" }
+db_layer = { path = "../db_layer" }
+storage_layer = { path = "../storage_layer" }
+indexer = { path = "../indexer" }
+sync_engine = { path = "../sync_engine" }
+tokio.workspace = true
+
+# Web framework
+axum = { workspace = true }
+axum-extra = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+jsonwebtoken.workspace = true
+reqwest = { workspace = true, features = ["json"] }
+
+# Serialization
+serde = { workspace = true }
+serde_json.workspace = true
+
+# Utilities
+uuid = { workspace = true }
+chrono.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+dotenvy = { workspace = true }
+
+# Async utilities
+tokio-util = { workspace = true }
+async-trait = { workspace = true }

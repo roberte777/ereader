@@ -1,0 +1,25 @@
+[package]
+name = "storage_layer"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+common = { path = "../common" }
+
+# Async
+tokio = { workspace = true, features = ["fs"] }
+async-trait = { workspace = true }
+
+# Image processing
+image = { workspace = true }
+
+# Utilities
+thiserror = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
+
+# Hashing
+sha2 = { workspace = true }
+hex = { workspace = true }

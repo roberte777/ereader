@@ -173,9 +173,8 @@ members = [
 
 [workspace.package]
 version = "0.1.0"
-edition = "2021"
-rust-version = "1.75"
-license = "MIT"
+edition = "2024"
+license = "MIT
 repository = "https://github.com/youruser/ereader-server"
 
 [workspace.dependencies]
@@ -4981,7 +4980,7 @@ volumes:
 
 ```dockerfile
 # Build stage
-FROM rust:1.75-alpine AS builder
+FROM rust:1.92-alpine AS builder
 
 RUN apk add --no-cache musl-dev openssl-dev openssl-libs-static
 

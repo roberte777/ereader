@@ -1,0 +1,20 @@
+[package]
+name = "indexer"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+common = { path = "../common" }
+
+# Ebook processing
+epub = { workspace = true }
+lopdf = { workspace = true }
+
+# Async
+async-trait = { workspace = true }
+
+# Utilities
+thiserror = { workspace = true }
+tracing = { workspace = true }

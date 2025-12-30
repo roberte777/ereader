@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ereader_postgres
+    environment:
+      POSTGRES_USER: ereader
+      POSTGRES_PASSWORD: ereader_dev
+      POSTGRES_DB: ereader
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ereader -d ereader"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ereader_api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      RUST_LOG: info,api_server=debug
+      EREADER__SERVER__HOST: 0.0.0.0
+      EREADER__SERVER__PORT: 3000
+      EREADER__DATABASE__URL: postgres://ereader:ereader_dev@postgres/ereader
+      EREADER__DATABASE__MAX_CONNECTIONS: 10
+      EREADER__STORAGE__BASE_PATH: /app/data/files
+      EREADER__STORAGE__COVERS_PATH: /app/data/covers
+      EREADER__STORAGE__TEMP_PATH: /app/data/temp
+    ports:
+      - "3000:3000"
+    volumes:
+      - ereader_data:/app/data
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+  ereader_data:
