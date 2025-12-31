@@ -15,5 +15,5 @@ pub use config::AppConfig;
 pub use error::{Error, Result};
 pub use types::{
     AnnotationId, AnnotationType, BookFormat, BookId, CollectionId, ContentHash, DeviceId,
-    FileAssetId, Paginated, Pagination, ReadingLocation, UserId,
+    Paginated, Pagination, ReadingLocation, UserId,
 };

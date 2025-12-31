@@ -32,7 +32,7 @@ export default function BookDetailPage() {
   const [imageError, setImageError] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCollectionModal, setShowCollectionModal] = useState(false);
-  const [showAddFormatModal, setShowAddFormatModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
   const handleDelete = async () => {
     if (confirm("Are you sure you want to delete this book?")) {
@@ -97,30 +97,27 @@ export default function BookDetailPage() {
           </div>
 
           <div className="mt-4 space-y-2">
-            {book.formats && book.formats.length > 0 ? (
-              book.formats.map((format) => (
-                <a
-                  key={format}
-                  href={booksApi.getDownloadUrl(book.id, format)}
-                  download
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button variant="secondary" className="w-full">
-                    <Download className="mr-2 h-4 w-4" />
-                    Download {format.toUpperCase()}
-                  </Button>
-                </a>
-              ))
+            {book.has_file ? (
+              <a
+                href={booksApi.getDownloadUrl(book.id)}
+                download
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="secondary" className="w-full">
+                  <Download className="mr-2 h-4 w-4" />
+                  Download EPUB
+                </Button>
+              </a>
             ) : (
               <div className="rounded-lg bg-foreground/5 p-4 text-center text-sm text-foreground/60">
-                No formats available
+                No file uploaded
               </div>
             )}
 
-            <Button variant="secondary" className="w-full" onClick={() => setShowAddFormatModal(true)}>
+            <Button variant="secondary" className="w-full" onClick={() => setShowUploadModal(true)}>
               <Upload className="mr-2 h-4 w-4" />
-              Add Format
+              {book.has_file ? "Replace File" : "Upload File"}
             </Button>
           </div>
         </div>
@@ -190,10 +187,16 @@ export default function BookDetailPage() {
               )}
               <dt className="text-foreground/60">Added</dt>
               <dd>{formatDate(book.created_at)}</dd>
-              {book.formats && book.formats.length > 0 && (
+              {book.has_file && book.format && (
                 <>
-                  <dt className="text-foreground/60">Formats</dt>
-                  <dd className="uppercase">{book.formats.join(", ")}</dd>
+                  <dt className="text-foreground/60">Format</dt>
+                  <dd className="uppercase">{book.format}</dd>
+                </>
+              )}
+              {book.has_file && book.file_size && (
+                <>
+                  <dt className="text-foreground/60">File Size</dt>
+                  <dd>{formatFileSize(book.file_size)}</dd>
                 </>
               )}
             </dl>
@@ -236,11 +239,11 @@ export default function BookDetailPage() {
           onClose={() => setShowCollectionModal(false)}
         />
       )}
-      {showAddFormatModal && (
+      {showUploadModal && (
         <AddFormatModal
           book={book}
-          isOpen={showAddFormatModal}
-          onClose={() => setShowAddFormatModal(false)}
+          isOpen={showUploadModal}
+          onClose={() => setShowUploadModal(false)}
         />
       )}
     </div>

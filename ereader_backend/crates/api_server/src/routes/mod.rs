@@ -33,7 +33,6 @@ pub fn create_router(state: AppState) -> Router {
         )
         .route("/{id}/upload", post(assets::upload_file))
         .route("/{id}/download", get(assets::download_file))
-        .route("/{id}/download/{format}", get(assets::download_file_format))
         .route("/{id}/cover", get(covers::get_cover))
         .route("/{id}/cover/{size}", get(covers::get_cover_size))
         .layer(DefaultBodyLimit::max(100 * 1024 * 1024)) // 100MB limit for file uploads

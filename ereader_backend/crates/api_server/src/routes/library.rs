@@ -6,7 +6,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use common::types::Pagination;
+use common::{types::Pagination, BookFormat};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use crate::extractors::AuthUser;
@@ -105,12 +105,18 @@ pub struct BookResponse {
     pub series_name: Option<String>,
     pub series_index: Option<f32>,
     pub tags: Vec<String>,
+    // File information
+    pub format: Option<BookFormat>,
+    pub file_size: Option<i64>,
+    pub content_hash: Option<String>,
+    pub has_file: bool,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
 impl From<db_layer::models::Book> for BookResponse {
     fn from(book: db_layer::models::Book) -> Self {
+        let has_file = book.has_file();
         Self {
             id: book.id,
             title: book.title,
@@ -123,6 +129,10 @@ impl From<db_layer::models::Book> for BookResponse {
             series_name: book.series_name,
             series_index: book.series_index,
             tags: book.tags,
+            format: book.format,
+            file_size: book.file_size,
+            content_hash: book.content_hash,
+            has_file,
             created_at: book.created_at,
             updated_at: book.updated_at,
         }

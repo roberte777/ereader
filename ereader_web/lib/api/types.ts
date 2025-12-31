@@ -12,16 +12,17 @@ export interface Book {
   series_name: string | null;
   series_index: number | null;
   tags: string[];
+  // File information (null if no file uploaded)
+  format: BookFormat | null;
+  file_size: number | null;
+  content_hash: string | null;
+  has_file: boolean;
   created_at: string;
   updated_at: string;
 }
 
-export interface BookWithAssets extends Book {
-  formats: BookFormat[];
-  has_cover: boolean;
-}
-
-export type BookFormat = "epub" | "pdf" | "cbz" | "mobi";
+// Only EPUB is currently supported
+export type BookFormat = "epub";
 
 export interface CreateBookRequest {
   title: string;
@@ -93,17 +94,8 @@ export interface UpdateReadingStateRequest {
   location: ReadingLocation;
 }
 
-export interface FileAsset {
-  id: string;
-  book_id: string;
-  format: BookFormat;
-  file_size: number;
-  content_hash: string;
-  created_at: string;
-}
-
 export interface UploadResponse {
-  asset_id: string;
+  book_id: string;
   format: BookFormat;
   file_size: number;
   content_hash: string;

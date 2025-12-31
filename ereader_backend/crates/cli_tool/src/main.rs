@@ -176,14 +176,11 @@ async fn handle_book_command(action: BookCommands, config: &AppConfig) -> anyhow
             // Read the file
             let data = tokio::fs::read(&file_path).await?;
 
-            // Determine format from extension
-            let format = if file_path.ends_with(".epub") {
-                common::BookFormat::Epub
-            } else if file_path.ends_with(".pdf") {
-                common::BookFormat::Pdf
-            } else {
-                anyhow::bail!("Unsupported file format. Only .epub and .pdf are supported.");
-            };
+            // Only EPUB is supported
+            if !file_path.ends_with(".epub") {
+                anyhow::bail!("Unsupported file format. Only .epub is supported.");
+            }
+            let format = common::BookFormat::Epub;
 
             // Get handler and extract metadata
             let handler = indexer::handler_for_format(format)
@@ -193,32 +190,22 @@ async fn handle_book_command(action: BookCommands, config: &AppConfig) -> anyhow
             // Compute hash
             let hash = storage_layer::LocalStorage::compute_hash(&data);
 
-            // Create book
-            let create_book = db_layer::models::CreateBook::new(&user_id, metadata.title.unwrap_or_else(|| "Unknown".to_string()))
-                .with_authors(metadata.authors);
-
-            let book = db_layer::queries::BookQueries::create(&pool, &create_book).await?;
-
-            // Store the file
-            let storage = storage_layer::LocalStorage::from_config(&config.storage).await?;
-            let storage_path = storage_layer::traits::Storage::store(&storage, &hash, &data).await?;
-
-            // Create file asset
+            // Create book with file information
             let file_name = std::path::Path::new(&file_path)
                 .file_name()
                 .and_then(|s| s.to_str())
                 .unwrap_or("unknown");
 
-            let file_asset = db_layer::models::CreateFileAsset::new(
-                book.id,
-                format,
-                data.len() as i64,
-                hash.as_str(),
-                &storage_path,
-                file_name,
-            );
+            // Store the file first
+            let storage = storage_layer::LocalStorage::from_config(&config.storage).await?;
+            let storage_path = storage_layer::traits::Storage::store(&storage, &hash, &data).await?;
 
-            db_layer::queries::FileAssetQueries::create(&pool, &file_asset).await?;
+            // Create book with file info included
+            let create_book = db_layer::models::CreateBook::new(&user_id, metadata.title.unwrap_or_else(|| "Unknown".to_string()))
+                .with_authors(metadata.authors)
+                .with_file(format, hash.as_str(), data.len() as i64, &storage_path, file_name);
+
+            let book = db_layer::queries::BookQueries::create(&pool, &create_book).await?;
 
             println!("Book imported successfully!");
             println!("  ID: {}", book.id);

@@ -2,7 +2,7 @@
 
 use crate::models::{Book, CreateBook, UpdateBook};
 use crate::pool::DbPool;
-use common::{Error, Paginated, Pagination, Result};
+use common::{BookFormat, Error, Paginated, Pagination, Result};
 use uuid::Uuid;
 
 /// Sorting options for book list
@@ -106,7 +106,9 @@ impl BookQueries {
         let query = format!(
             r#"
             SELECT id, user_id, title, authors, description, language, publisher,
-                   published_date, isbn, series_name, series_index, tags, created_at, updated_at
+                   published_date, isbn, series_name, series_index, tags,
+                   format, content_hash, file_size, storage_path, original_filename,
+                   created_at, updated_at
             FROM books
             WHERE {}
             ORDER BY {} {}
@@ -145,7 +147,9 @@ impl BookQueries {
         let book = sqlx::query_as::<_, Book>(
             r#"
             SELECT id, user_id, title, authors, description, language, publisher,
-                   published_date, isbn, series_name, series_index, tags, created_at, updated_at
+                   published_date, isbn, series_name, series_index, tags,
+                   format, content_hash, file_size, storage_path, original_filename,
+                   created_at, updated_at
             FROM books
             WHERE id = $1
             "#,
@@ -173,7 +177,9 @@ impl BookQueries {
         let book = sqlx::query_as::<_, Book>(
             r#"
             SELECT id, user_id, title, authors, description, language, publisher,
-                   published_date, isbn, series_name, series_index, tags, created_at, updated_at
+                   published_date, isbn, series_name, series_index, tags,
+                   format, content_hash, file_size, storage_path, original_filename,
+                   created_at, updated_at
             FROM books
             WHERE id = $1 AND user_id = $2
             "#,
@@ -191,10 +197,13 @@ impl BookQueries {
         let book = sqlx::query_as::<_, Book>(
             r#"
             INSERT INTO books (id, user_id, title, authors, description, language, publisher,
-                              published_date, isbn, series_name, series_index, tags)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                              published_date, isbn, series_name, series_index, tags,
+                              format, content_hash, file_size, storage_path, original_filename)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
             RETURNING id, user_id, title, authors, description, language, publisher,
-                      published_date, isbn, series_name, series_index, tags, created_at, updated_at
+                      published_date, isbn, series_name, series_index, tags,
+                      format, content_hash, file_size, storage_path, original_filename,
+                      created_at, updated_at
             "#,
         )
         .bind(data.id)
@@ -209,6 +218,11 @@ impl BookQueries {
         .bind(&data.series_name)
         .bind(data.series_index)
         .bind(&data.tags)
+        .bind(data.format)
+        .bind(&data.content_hash)
+        .bind(data.file_size)
+        .bind(&data.storage_path)
+        .bind(&data.original_filename)
         .fetch_one(pool)
         .await?;
 
@@ -233,7 +247,9 @@ impl BookQueries {
                 tags = COALESCE($11, tags)
             WHERE id = $1
             RETURNING id, user_id, title, authors, description, language, publisher,
-                      published_date, isbn, series_name, series_index, tags, created_at, updated_at
+                      published_date, isbn, series_name, series_index, tags,
+                      format, content_hash, file_size, storage_path, original_filename,
+                      created_at, updated_at
             "#,
         )
         .bind(id)
@@ -293,7 +309,9 @@ impl BookQueries {
         let items = sqlx::query_as::<_, Book>(
             r#"
             SELECT id, user_id, title, authors, description, language, publisher,
-                   published_date, isbn, series_name, series_index, tags, created_at, updated_at
+                   published_date, isbn, series_name, series_index, tags,
+                   format, content_hash, file_size, storage_path, original_filename,
+                   created_at, updated_at
             FROM books
             WHERE user_id = $1
               AND (LOWER(title) LIKE $2
@@ -311,5 +329,68 @@ impl BookQueries {
         .await?;
 
         Ok(Paginated::new(items, total, pagination))
+    }
+
+    /// Find a book by content hash for a specific user (for deduplication)
+    pub async fn find_by_content_hash(
+        pool: &DbPool,
+        user_id: &str,
+        content_hash: &str,
+    ) -> Result<Option<Book>> {
+        let book = sqlx::query_as::<_, Book>(
+            r#"
+            SELECT id, user_id, title, authors, description, language, publisher,
+                   published_date, isbn, series_name, series_index, tags,
+                   format, content_hash, file_size, storage_path, original_filename,
+                   created_at, updated_at
+            FROM books
+            WHERE user_id = $1 AND content_hash = $2
+            "#,
+        )
+        .bind(user_id)
+        .bind(content_hash)
+        .fetch_optional(pool)
+        .await?;
+
+        Ok(book)
+    }
+
+    /// Update a book's file information
+    pub async fn update_file(
+        pool: &DbPool,
+        id: Uuid,
+        format: BookFormat,
+        content_hash: &str,
+        file_size: i64,
+        storage_path: &str,
+        original_filename: &str,
+    ) -> Result<Book> {
+        let book = sqlx::query_as::<_, Book>(
+            r#"
+            UPDATE books
+            SET
+                format = $2,
+                content_hash = $3,
+                file_size = $4,
+                storage_path = $5,
+                original_filename = $6
+            WHERE id = $1
+            RETURNING id, user_id, title, authors, description, language, publisher,
+                      published_date, isbn, series_name, series_index, tags,
+                      format, content_hash, file_size, storage_path, original_filename,
+                      created_at, updated_at
+            "#,
+        )
+        .bind(id)
+        .bind(format)
+        .bind(content_hash)
+        .bind(file_size)
+        .bind(storage_path)
+        .bind(original_filename)
+        .fetch_optional(pool)
+        .await?
+        .ok_or_else(|| Error::not_found_resource("book", id))?;
+
+        Ok(book)
     }
 }

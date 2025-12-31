@@ -1,7 +1,6 @@
 import { getApiClient } from "./client";
 import type {
   Book,
-  BookWithAssets,
   CreateBookRequest,
   UpdateBookRequest,
   ListBooksParams,
@@ -15,8 +14,8 @@ export const booksApi = {
     return getApiClient().get<Paginated<Book>>("/books", params);
   },
 
-  get(id: string): Promise<BookWithAssets> {
-    return getApiClient().get<BookWithAssets>(`/books/${id}`);
+  get(id: string): Promise<Book> {
+    return getApiClient().get<Book>(`/books/${id}`);
   },
 
   create(data: CreateBookRequest): Promise<Book> {
@@ -42,11 +41,8 @@ export const booksApi = {
     );
   },
 
-  getDownloadUrl(bookId: string, format?: string): string {
-    const endpoint = format
-      ? `/books/${bookId}/download/${format}`
-      : `/books/${bookId}/download`;
-    return getApiClient().getDownloadUrl(endpoint);
+  getDownloadUrl(bookId: string): string {
+    return getApiClient().getDownloadUrl(`/books/${bookId}/download`);
   },
 
   getCoverUrl(bookId: string, size?: "small" | "medium" | "large"): string {

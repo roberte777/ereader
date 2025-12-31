@@ -18,6 +18,11 @@ pub struct Book {
     pub series_name: Option<String>,
     pub series_index: Option<f32>,
     pub tags: Vec<String>,
+    // File information
+    pub format: Option<String>,
+    pub file_size: Option<i64>,
+    pub content_hash: Option<String>,
+    pub has_file: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

@@ -5,15 +5,15 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { FileDropzone } from "@/components/upload/file-dropzone";
 import { useUploadBookFile } from "@/lib/hooks/use-books";
-import type { BookWithAssets, BookFormat } from "@/lib/api/types";
+import type { Book } from "@/lib/api/types";
 
-interface AddFormatModalProps {
-  book: BookWithAssets;
+interface UploadFileModalProps {
+  book: Book;
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function AddFormatModal({ book, isOpen, onClose }: AddFormatModalProps) {
+export function UploadFileModal({ book, isOpen, onClose }: UploadFileModalProps) {
   const uploadFile = useUploadBookFile();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [error, setError] = useState<string>("");
@@ -26,11 +26,17 @@ export function AddFormatModal({ book, isOpen, onClose }: AddFormatModalProps) {
 
     const file = selectedFiles[0];
 
-    // Check if this format already exists
-    const fileExt = file.name.split('.').pop()?.toLowerCase() as BookFormat;
-    if (book.formats.includes(fileExt)) {
-      setError(`This book already has a ${fileExt.toUpperCase()} format`);
+    // Check if file is EPUB
+    if (!file.name.toLowerCase().endsWith('.epub')) {
+      setError("Only EPUB files are supported");
       return;
+    }
+
+    // Warn if book already has a file
+    if (book.has_file) {
+      if (!confirm("This book already has a file. Uploading will replace it. Continue?")) {
+        return;
+      }
     }
 
     try {
@@ -50,20 +56,19 @@ export function AddFormatModal({ book, isOpen, onClose }: AddFormatModalProps) {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Add Format">
+    <Modal isOpen={isOpen} onClose={handleClose} title="Upload EPUB File">
       <div className="space-y-4">
-        {book.formats.length > 0 && (
-          <div className="rounded-lg bg-foreground/5 p-3">
-            <p className="text-sm font-medium mb-1">Current formats:</p>
-            <p className="text-sm text-foreground/60">
-              {book.formats.map((f) => f.toUpperCase()).join(", ")}
+        {book.has_file && (
+          <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
+            <p className="text-sm text-amber-600 dark:text-amber-400">
+              This book already has an EPUB file. Uploading a new file will replace it.
             </p>
           </div>
         )}
 
         <div>
           <p className="text-sm text-foreground/60 mb-3">
-            Upload an additional format for this book (EPUB, PDF, CBZ, or MOBI)
+            Upload an EPUB file for this book
           </p>
           <FileDropzone
             onFilesSelected={setSelectedFiles}
@@ -97,3 +102,6 @@ export function AddFormatModal({ book, isOpen, onClose }: AddFormatModalProps) {
     </Modal>
   );
 }
+
+// Keep the old export name for backwards compatibility
+export { UploadFileModal as AddFormatModal };

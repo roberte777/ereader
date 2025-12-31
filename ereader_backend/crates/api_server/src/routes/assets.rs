@@ -8,7 +8,7 @@ use axum::{
     Json,
 };
 use common::{BookFormat, ContentHash, Error, Result};
-use db_layer::{models::CreateFileAsset, queries::{BookQueries, FileAssetQueries}};
+use db_layer::queries::BookQueries;
 use serde::Serialize;
 use storage_layer::{CoverStorage, Storage};
 use tokio_util::io::ReaderStream;
@@ -50,7 +50,7 @@ pub async fn upload_file(
             .ok_or_else(|| Error::Validation("Unknown file extension".into()))?;
 
         let format = BookFormat::from_extension(extension)
-            .ok_or_else(|| Error::Validation(format!("Unsupported format: {}", extension)))?;
+            .ok_or_else(|| Error::Validation(format!("Unsupported format: {}. Only EPUB is supported.", extension)))?;
 
         // Read file data
         let data = field
@@ -62,14 +62,10 @@ pub async fn upload_file(
         let file_size = data.len() as i64;
 
         // Check for duplicate by hash (across user's library)
-        let existing_assets = FileAssetQueries::find_by_hash(&state.pool, content_hash.as_str()).await?;
-        for existing in existing_assets {
-            // Check if this asset belongs to a book owned by the current user
-            if let Some(_existing_book) = BookQueries::get_by_id_for_user(&state.pool, existing.book_id, &auth.user_id).await? {
-                return Err(Error::Conflict(
-                    "This file already exists in your library".into(),
-                ));
-            }
+        if let Some(_existing_book) = BookQueries::find_by_content_hash(&state.pool, &auth.user_id, content_hash.as_str()).await? {
+            return Err(Error::Conflict(
+                "This file already exists in your library".into(),
+            ));
         }
 
         // Store file
@@ -113,29 +109,26 @@ pub async fn upload_file(
             }
         }
 
-        // Create file asset record
-        let _asset_id = Uuid::now_v7();
-        let asset_data = CreateFileAsset::new(
+        // Update book with file information
+        let book = BookQueries::update_file(
+            &state.pool,
             id,
             format,
-            file_size,
             content_hash.as_str(),
-            storage_path,
-            filename,
-        );
-
-        let asset = FileAssetQueries::create(&state.pool, &asset_data).await?;
+            file_size,
+            &storage_path,
+            &filename,
+        ).await?;
 
         tracing::info!(
             book_id = %id,
-            asset_id = %asset.id,
             format = ?format,
             size_bytes = file_size,
             "File uploaded successfully"
         );
 
         return Ok(Json(UploadResponse {
-            asset_id: asset.id,
+            book_id: book.id,
             format,
             file_size,
             content_hash: content_hash.as_str().to_string(),
@@ -147,56 +140,35 @@ pub async fn upload_file(
 
 #[derive(Debug, Serialize)]
 pub struct UploadResponse {
-    pub asset_id: Uuid,
+    pub book_id: Uuid,
     pub format: BookFormat,
     pub file_size: i64,
     pub content_hash: String,
 }
 
-/// Download the default file for a book
+/// Download the file for a book
 pub async fn download_file(
     State(state): State<AppState>,
     auth: AuthUser,
     Path(id): Path<Uuid>,
 ) -> Result<Response> {
-    download_file_impl(state, auth, id, None).await
-}
-
-/// Download a specific format file for a book
-pub async fn download_file_format(
-    State(state): State<AppState>,
-    auth: AuthUser,
-    Path((id, format)): Path<(Uuid, String)>,
-) -> Result<Response> {
-    let book_format = BookFormat::from_extension(&format)
-        .ok_or_else(|| Error::Validation(format!("Unknown format: {}", format)))?;
-    download_file_impl(state, auth, id, Some(book_format)).await
-}
-
-async fn download_file_impl(
-    state: AppState,
-    auth: AuthUser,
-    id: Uuid,
-    format: Option<BookFormat>,
-) -> Result<Response> {
-    // Verify ownership
-    let _book = BookQueries::get_by_id_for_user(&state.pool, id, &auth.user_id)
+    // Verify ownership and get book
+    let book = BookQueries::get_by_id_for_user(&state.pool, id, &auth.user_id)
         .await?
         .ok_or_else(|| Error::NotFound("Book not found".into()))?;
 
-    // Get file asset
-    let asset = if let Some(fmt) = format {
-        FileAssetQueries::get_for_book_format(&state.pool, id, fmt)
-            .await?
-            .ok_or_else(|| Error::NotFound(format!("No {} file available", fmt)))?
-    } else {
-        FileAssetQueries::get_default_for_book(&state.pool, id)
-            .await?
-            .ok_or_else(|| Error::NotFound("No file available".into()))?
-    };
+    // Check if book has a file
+    let storage_path = book.storage_path
+        .ok_or_else(|| Error::NotFound("No file available for this book".into()))?;
+    let format = book.format
+        .ok_or_else(|| Error::NotFound("No file available for this book".into()))?;
+    let file_size = book.file_size
+        .ok_or_else(|| Error::NotFound("No file available for this book".into()))?;
+    let original_filename = book.original_filename
+        .unwrap_or_else(|| format!("{}.{}", book.title, format.extension()));
 
     // Open file
-    let path = state.storage.full_path(&asset.storage_path);
+    let path = state.storage.full_path(&storage_path);
     let file = tokio::fs::File::open(&path)
         .await
         .map_err(|e| Error::Storage(e.to_string()))?;
@@ -206,11 +178,11 @@ async fn download_file_impl(
 
     let response = Response::builder()
         .status(StatusCode::OK)
-        .header(header::CONTENT_TYPE, asset.format.mime_type())
-        .header(header::CONTENT_LENGTH, asset.file_size)
+        .header(header::CONTENT_TYPE, format.mime_type())
+        .header(header::CONTENT_LENGTH, file_size)
         .header(
             header::CONTENT_DISPOSITION,
-            format!("attachment; filename=\"{}\"", asset.original_filename),
+            format!("attachment; filename=\"{}\"", original_filename),
         )
         .body(body)
         .map_err(|e| Error::Internal(e.to_string()))?;

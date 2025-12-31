@@ -20,8 +20,21 @@ pub struct Book {
     pub series_name: Option<String>,
     pub series_index: Option<f32>,
     pub tags: Vec<String>,
+    // File fields (optional - book can exist without file)
+    pub format: Option<BookFormat>,
+    pub content_hash: Option<String>,
+    pub file_size: Option<i64>,
+    pub storage_path: Option<String>,
+    pub original_filename: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+impl Book {
+    /// Check if this book has a file attached
+    pub fn has_file(&self) -> bool {
+        self.storage_path.is_some()
+    }
 }
 
 /// Data for creating a new book
@@ -39,6 +52,12 @@ pub struct CreateBook {
     pub series_name: Option<String>,
     pub series_index: Option<f32>,
     pub tags: Vec<String>,
+    // File fields
+    pub format: Option<BookFormat>,
+    pub content_hash: Option<String>,
+    pub file_size: Option<i64>,
+    pub storage_path: Option<String>,
+    pub original_filename: Option<String>,
 }
 
 impl CreateBook {
@@ -56,6 +75,11 @@ impl CreateBook {
             series_name: None,
             series_index: None,
             tags: vec![],
+            format: None,
+            content_hash: None,
+            file_size: None,
+            storage_path: None,
+            original_filename: None,
         }
     }
 
@@ -84,6 +108,22 @@ impl CreateBook {
         self.tags = tags;
         self
     }
+
+    pub fn with_file(
+        mut self,
+        format: BookFormat,
+        content_hash: impl Into<String>,
+        file_size: i64,
+        storage_path: impl Into<String>,
+        original_filename: impl Into<String>,
+    ) -> Self {
+        self.format = Some(format);
+        self.content_hash = Some(content_hash.into());
+        self.file_size = Some(file_size);
+        self.storage_path = Some(storage_path.into());
+        self.original_filename = Some(original_filename.into());
+        self
+    }
 }
 
 /// Data for updating an existing book
@@ -99,52 +139,6 @@ pub struct UpdateBook {
     pub series_name: Option<String>,
     pub series_index: Option<f32>,
     pub tags: Option<Vec<String>>,
-}
-
-/// File asset record from the database
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-pub struct FileAsset {
-    pub id: Uuid,
-    pub book_id: Uuid,
-    pub format: BookFormat,
-    pub file_size: i64,
-    pub content_hash: String,
-    pub storage_path: String,
-    pub original_filename: String,
-    pub created_at: DateTime<Utc>,
-}
-
-/// Data for creating a new file asset
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateFileAsset {
-    pub id: Uuid,
-    pub book_id: Uuid,
-    pub format: BookFormat,
-    pub file_size: i64,
-    pub content_hash: String,
-    pub storage_path: String,
-    pub original_filename: String,
-}
-
-impl CreateFileAsset {
-    pub fn new(
-        book_id: Uuid,
-        format: BookFormat,
-        file_size: i64,
-        content_hash: impl Into<String>,
-        storage_path: impl Into<String>,
-        original_filename: impl Into<String>,
-    ) -> Self {
-        Self {
-            id: Uuid::now_v7(),
-            book_id,
-            format,
-            file_size,
-            content_hash: content_hash.into(),
-            storage_path: storage_path.into(),
-            original_filename: original_filename.into(),
-        }
-    }
 }
 
 /// Cover record from the database

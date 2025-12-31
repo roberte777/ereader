@@ -31,24 +31,25 @@ impl TaskHandler for ReindexBookHandler {
             .await?
             .ok_or_else(|| anyhow::anyhow!("Book not found: {}", payload.book_id))?;
 
-        // Get the file asset for this book
-        let file_assets = db_layer::queries::FileAssetQueries::get_for_book(&ctx.pool, book.id).await?;
+        // Check if book has a file
+        let storage_path = match &book.storage_path {
+            Some(path) => path,
+            None => {
+                tracing::warn!(book_id = %book.id, "No file found for book");
+                return Ok(());
+            }
+        };
 
-        if file_assets.is_empty() {
-            tracing::warn!(book_id = %book.id, "No file assets found for book");
-            return Ok(());
-        }
-
-        // Get the primary file asset (first one)
-        let file_asset = &file_assets[0];
+        let format = book.format
+            .ok_or_else(|| anyhow::anyhow!("Book has storage_path but no format: {}", book.id))?;
 
         // Retrieve the file from storage
         let storage = ctx.storage.as_ref();
-        let data = storage_layer::traits::Storage::retrieve(storage, &file_asset.storage_path).await?;
+        let data = storage_layer::traits::Storage::retrieve(storage, storage_path).await?;
 
         // Get the format handler
-        let handler = indexer::handler_for_format(file_asset.format)
-            .ok_or_else(|| anyhow::anyhow!("No handler for format: {:?}", file_asset.format))?;
+        let handler = indexer::handler_for_format(format)
+            .ok_or_else(|| anyhow::anyhow!("No handler for format: {:?}", format))?;
 
         // Extract metadata
         let metadata = handler.extract_metadata(&data)?;

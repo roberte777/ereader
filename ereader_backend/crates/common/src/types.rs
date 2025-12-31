@@ -91,35 +91,6 @@ impl From<Uuid> for DeviceId {
     }
 }
 
-/// Unique identifier for file assets
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, sqlx::Type)]
-#[sqlx(transparent)]
-pub struct FileAssetId(pub Uuid);
-
-impl FileAssetId {
-    pub fn new() -> Self {
-        Self(Uuid::now_v7())
-    }
-}
-
-impl Default for FileAssetId {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl std::fmt::Display for FileAssetId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<Uuid> for FileAssetId {
-    fn from(uuid: Uuid) -> Self {
-        Self(uuid)
-    }
-}
-
 /// Unique identifier for collections
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(transparent)]
@@ -240,14 +211,17 @@ impl ReadingLocation {
 }
 
 /// Supported ebook formats
+///
+/// Currently only EPUB is supported. To add new formats in the future:
+/// 1. Add variant here
+/// 2. Update from_extension(), mime_type(), extension()
+/// 3. Create handler in indexer crate
+/// 4. Run database migration to add enum value
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(type_name = "book_format", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum BookFormat {
     Epub,
-    Pdf,
-    Cbz,
-    Mobi,
 }
 
 impl BookFormat {
@@ -255,9 +229,6 @@ impl BookFormat {
     pub fn from_extension(ext: &str) -> Option<Self> {
         match ext.to_lowercase().as_str() {
             "epub" => Some(Self::Epub),
-            "pdf" => Some(Self::Pdf),
-            "cbz" | "cbr" => Some(Self::Cbz),
-            "mobi" | "azw3" => Some(Self::Mobi),
             _ => None,
         }
     }
@@ -266,9 +237,6 @@ impl BookFormat {
     pub fn mime_type(&self) -> &'static str {
         match self {
             Self::Epub => "application/epub+zip",
-            Self::Pdf => "application/pdf",
-            Self::Cbz => "application/vnd.comicbook+zip",
-            Self::Mobi => "application/x-mobipocket-ebook",
         }
     }
 
@@ -276,9 +244,6 @@ impl BookFormat {
     pub fn extension(&self) -> &'static str {
         match self {
             Self::Epub => "epub",
-            Self::Pdf => "pdf",
-            Self::Cbz => "cbz",
-            Self::Mobi => "mobi",
         }
     }
 }
@@ -287,9 +252,6 @@ impl std::fmt::Display for BookFormat {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Epub => write!(f, "epub"),
-            Self::Pdf => write!(f, "pdf"),
-            Self::Cbz => write!(f, "cbz"),
-            Self::Mobi => write!(f, "mobi"),
         }
     }
 }
@@ -386,11 +348,10 @@ mod tests {
     fn test_book_format_from_extension() {
         assert_eq!(BookFormat::from_extension("epub"), Some(BookFormat::Epub));
         assert_eq!(BookFormat::from_extension("EPUB"), Some(BookFormat::Epub));
-        assert_eq!(BookFormat::from_extension("pdf"), Some(BookFormat::Pdf));
-        assert_eq!(BookFormat::from_extension("cbz"), Some(BookFormat::Cbz));
-        assert_eq!(BookFormat::from_extension("cbr"), Some(BookFormat::Cbz));
-        assert_eq!(BookFormat::from_extension("mobi"), Some(BookFormat::Mobi));
-        assert_eq!(BookFormat::from_extension("azw3"), Some(BookFormat::Mobi));
+        // Unsupported formats return None
+        assert_eq!(BookFormat::from_extension("pdf"), None);
+        assert_eq!(BookFormat::from_extension("cbz"), None);
+        assert_eq!(BookFormat::from_extension("mobi"), None);
         assert_eq!(BookFormat::from_extension("txt"), None);
     }
 

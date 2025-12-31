@@ -5,11 +5,9 @@ import { useDropzone } from "react-dropzone";
 import { Upload, File, X } from "lucide-react";
 import { cn, formatFileSize } from "@/lib/utils";
 
+// Only EPUB is currently supported
 const ACCEPTED_FORMATS = {
   "application/epub+zip": [".epub"],
-  "application/pdf": [".pdf"],
-  "application/vnd.comicbook+zip": [".cbz"],
-  "application/x-mobipocket-ebook": [".mobi", ".azw3"],
 };
 
 interface FileDropzoneProps {
@@ -64,7 +62,7 @@ export function FileDropzone({
           or click to browse
         </p>
         <p className="mt-4 text-xs text-foreground/40">
-          Supports EPUB, PDF, CBZ, MOBI (max {maxFiles} files)
+          Supports EPUB files (max {maxFiles} files)
         </p>
       </div>
 

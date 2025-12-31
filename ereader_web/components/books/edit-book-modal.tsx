@@ -5,10 +5,10 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { useUpdateBook } from "@/lib/hooks/use-books";
-import type { BookWithAssets } from "@/lib/api/types";
+import type { Book } from "@/lib/api/types";
 
 interface EditBookModalProps {
-  book: BookWithAssets;
+  book: Book;
   isOpen: boolean;
   onClose: () => void;
 }

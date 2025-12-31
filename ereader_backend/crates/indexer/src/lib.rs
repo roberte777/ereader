@@ -1,17 +1,20 @@
 //! Ebook indexer for metadata extraction and cover generation.
 //!
 //! This crate provides:
-//! - Format-specific handlers for EPUB and PDF
+//! - Format-specific handlers (currently EPUB only)
 //! - Metadata extraction (title, authors, description, etc.)
 //! - Cover image extraction
 //! - Location calculation for navigation
+//!
+//! To add support for new formats in the future:
+//! 1. Create a new handler module (e.g., `pdf.rs`)
+//! 2. Implement the `FormatHandler` trait
+//! 3. Add the handler to `handler_for_format()`
 
 pub mod epub;
-pub mod pdf;
 pub mod traits;
 
 pub use epub::EpubHandler;
-pub use pdf::PdfHandler;
 pub use traits::{BookMetadata, FormatHandler, LocationInfo, LocationItem};
 
 use common::BookFormat;
@@ -20,9 +23,6 @@ use common::BookFormat;
 pub fn handler_for_format(format: BookFormat) -> Option<Box<dyn FormatHandler>> {
     match format {
         BookFormat::Epub => Some(Box::new(EpubHandler::new())),
-        BookFormat::Pdf => Some(Box::new(PdfHandler::new())),
-        BookFormat::Cbz => None, // Not yet implemented
-        BookFormat::Mobi => None, // Not yet implemented
     }
 }
 
@@ -54,8 +54,5 @@ mod tests {
     #[test]
     fn test_handler_for_format() {
         assert!(handler_for_format(BookFormat::Epub).is_some());
-        assert!(handler_for_format(BookFormat::Pdf).is_some());
-        assert!(handler_for_format(BookFormat::Cbz).is_none());
-        assert!(handler_for_format(BookFormat::Mobi).is_none());
     }
 }
