@@ -1,9 +1,11 @@
 "use client";
 
-import { Grid, List, ArrowUpDown, SortAsc, SortDesc } from "lucide-react";
+import Link from "next/link";
+import { Grid, List, ArrowUpDown, SortAsc, SortDesc, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLibraryStore } from "@/lib/store/library-store";
 import { Select } from "@/components/ui/dropdown";
+import { Button } from "@/components/ui/button";
 
 const sortOptions = [
   { value: "created_at", label: "Date Added" },
@@ -31,6 +33,13 @@ export function LibraryToolbar({ totalBooks }: LibraryToolbarProps) {
       </div>
 
       <div className="flex items-center gap-2">
+        <Link href="/books/upload">
+          <Button>
+            <Upload className="mr-2 h-4 w-4" />
+            Upload
+          </Button>
+        </Link>
+
         <Select
           value={sortBy}
           onChange={(value) => setSortBy(value as typeof sortBy)}

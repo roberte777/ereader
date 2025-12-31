@@ -15,6 +15,7 @@ async fn main() -> anyhow::Result<()> {
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
+    _ = dotenvy::dotenv();
 
     tracing::info!("Starting e-reader API server");
 

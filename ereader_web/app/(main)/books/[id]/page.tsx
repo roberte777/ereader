@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import {
   BookOpen,
@@ -11,12 +10,16 @@ import {
   Trash2,
   Download,
   FolderPlus,
+  Upload,
 } from "lucide-react";
 import { useBook, useDeleteBook } from "@/lib/hooks/use-books";
 import { booksApi } from "@/lib/api/books";
 import { formatAuthors, formatDate, formatFileSize } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EditBookModal } from "@/components/books/edit-book-modal";
+import { AddToCollectionModal } from "@/components/books/add-to-collection-modal";
+import { AddFormatModal } from "@/components/books/add-format-modal";
 
 export default function BookDetailPage() {
   const params = useParams();
@@ -27,6 +30,9 @@ export default function BookDetailPage() {
   const deleteBook = useDeleteBook();
 
   const [imageError, setImageError] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showCollectionModal, setShowCollectionModal] = useState(false);
+  const [showAddFormatModal, setShowAddFormatModal] = useState(false);
 
   const handleDelete = async () => {
     if (confirm("Are you sure you want to delete this book?")) {
@@ -77,14 +83,11 @@ export default function BookDetailPage() {
         <div className="flex-shrink-0">
           <div className="relative aspect-[2/3] w-56 overflow-hidden rounded-lg bg-foreground/5 shadow-lg">
             {!imageError ? (
-              <Image
+              <img
                 src={coverUrl}
                 alt={book.title}
-                fill
-                className="object-cover"
+                className="h-full w-full object-cover"
                 onError={() => setImageError(true)}
-                priority
-                sizes="224px"
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center">
@@ -94,25 +97,31 @@ export default function BookDetailPage() {
           </div>
 
           <div className="mt-4 space-y-2">
-            <Link href={`/books/${book.id}/read`}>
-              <Button className="w-full">
-                <BookOpen className="mr-2 h-4 w-4" />
-                Read
-              </Button>
-            </Link>
-
-            {book.formats && book.formats.length > 0 && (
-              <a
-                href={booksApi.getDownloadUrl(book.id)}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button variant="secondary" className="w-full">
-                  <Download className="mr-2 h-4 w-4" />
-                  Download
-                </Button>
-              </a>
+            {book.formats && book.formats.length > 0 ? (
+              book.formats.map((format) => (
+                <a
+                  key={format}
+                  href={booksApi.getDownloadUrl(book.id, format)}
+                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="secondary" className="w-full">
+                    <Download className="mr-2 h-4 w-4" />
+                    Download {format.toUpperCase()}
+                  </Button>
+                </a>
+              ))
+            ) : (
+              <div className="rounded-lg bg-foreground/5 p-4 text-center text-sm text-foreground/60">
+                No formats available
+              </div>
             )}
+
+            <Button variant="secondary" className="w-full" onClick={() => setShowAddFormatModal(true)}>
+              <Upload className="mr-2 h-4 w-4" />
+              Add Format
+            </Button>
           </div>
         </div>
 
@@ -191,11 +200,11 @@ export default function BookDetailPage() {
           </div>
 
           <div className="flex gap-2 border-t border-foreground/10 pt-6">
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" onClick={() => setShowCollectionModal(true)}>
               <FolderPlus className="mr-2 h-4 w-4" />
               Add to Collection
             </Button>
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" onClick={() => setShowEditModal(true)}>
               <Edit className="mr-2 h-4 w-4" />
               Edit
             </Button>
@@ -211,6 +220,29 @@ export default function BookDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      {showEditModal && (
+        <EditBookModal
+          book={book}
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+        />
+      )}
+      {showCollectionModal && (
+        <AddToCollectionModal
+          bookId={book.id}
+          isOpen={showCollectionModal}
+          onClose={() => setShowCollectionModal(false)}
+        />
+      )}
+      {showAddFormatModal && (
+        <AddFormatModal
+          book={book}
+          isOpen={showAddFormatModal}
+          onClose={() => setShowAddFormatModal(false)}
+        />
+      )}
     </div>
   );
 }

@@ -36,7 +36,7 @@ thiserror.workspace = true
 anyhow.workspace = true
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
-dotenvy = { workspace = true }
+dotenvy.workspace = true
 
 # Async utilities
 tokio-util = { workspace = true }

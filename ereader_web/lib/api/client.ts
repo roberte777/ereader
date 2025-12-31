@@ -118,7 +118,8 @@ export class ApiClient {
   }
 
   getCoverUrl(bookId: string, size: "small" | "medium" | "large" = "medium"): string {
-    return `${this.baseUrl}/books/${bookId}/cover/${size}`;
+    // Use Next.js API route proxy to handle authentication
+    return `/api/images?path=/books/${bookId}/cover/${size}`;
   }
 }
 

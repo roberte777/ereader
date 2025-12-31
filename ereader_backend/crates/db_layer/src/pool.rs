@@ -48,10 +48,7 @@ pub async fn run_migrations(pool: &DbPool) -> Result<(), sqlx::migrate::MigrateE
 
 /// Check if the database is ready to accept connections
 pub async fn health_check(pool: &DbPool) -> bool {
-    sqlx::query("SELECT 1")
-        .fetch_one(pool)
-        .await
-        .is_ok()
+    sqlx::query("SELECT 1").fetch_one(pool).await.is_ok()
 }
 
 #[cfg(test)]

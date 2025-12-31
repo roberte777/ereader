@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { BookOpen, MoreVertical } from "lucide-react";
 import { cn, formatAuthors, formatDate } from "@/lib/utils";
 import type { Book } from "@/lib/api/types";
@@ -74,13 +73,11 @@ function BookListItem({ book, progress, onDelete }: BookListItemProps) {
         className="relative h-16 w-12 flex-shrink-0 overflow-hidden rounded bg-foreground/5"
       >
         {!imageError ? (
-          <Image
+          <img
             src={coverUrl}
             alt={book.title}
-            fill
-            className="object-cover"
+            className="h-full w-full object-cover"
             onError={() => setImageError(true)}
-            sizes="48px"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
@@ -127,9 +124,14 @@ function BookListItem({ book, progress, onDelete }: BookListItemProps) {
         }
       >
         <DropdownItem>
-          <Link href={`/books/${book.id}/read`} className="block w-full">
-            Read
-          </Link>
+          <a
+            href={booksApi.getDownloadUrl(book.id)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block w-full"
+          >
+            Download
+          </a>
         </DropdownItem>
         <DropdownItem>
           <Link href={`/books/${book.id}`} className="block w-full">
